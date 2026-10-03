@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Mini IDS Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            color: #666;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+
+        .number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .status {
+            color: #16803c;
+        }
+
+        .alert-status {
+            color: #c62828;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .panel h2 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f7f7f7;
+        }
+
+        .high {
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .normal {
+            color: #16803c;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            color: #777;
+            padding: 30px;
+        }
+
+        @media (max-width: 800px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛡️ Mini Intrusion Detection System</h1>
+
+    <p class="subtitle">
+        Real-time network monitoring and security alerts
+    </p>
+
+    <!-- Statistics -->
+    <div class="cards">
+
+        <div class="card">
+            <h3>Packets Captured</h3>
+            <div class="number" id="packetCount">0</div>
+        </div>
+
+        <div class="card">
+            <h3>Security Alerts</h3>
+            <div class="number" id="alertCount">0</div>
+        </div>
+
+        <div class="card">
+            <h3>System Status</h3>
+            <div class="number status" id="systemStatus">
+                Monitoring
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Alerts -->
+    <div class="panel">
+
+        <h2>Recent Security Alerts</h2>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Source IP</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+
+            <tbody id="alertTable">
+
+                <tr>
+                    <td colspan="4" class="empty">
+                        No security alerts detected.
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function updateDashboard() {
+
+    try {
+
+        // Get statistics
+        const statsResponse = await fetch("/api/stats");
+        const stats = await statsResponse.json();
+
+        document.getElementById("packetCount").textContent =
+            stats.packets || 0;
+
+
+        // Get alerts
+        const alertsResponse = await fetch("/api/alerts");
+        const alerts = await alertsResponse.json();
+
+        document.getElementById("alertCount").textContent =
+            alerts.length;
+
+
+        const table = document.getElementById("alertTable");
+
+        if (alerts.length === 0) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="4" class="empty">
+                        No security alerts detected.
+                    </td>
+                </tr>
+            `;
+
+            document.getElementById("systemStatus").textContent =
+                "Monitoring";
+
+            document.getElementById("systemStatus").className =
+                "number status";
+
+            return;
+        }
+
+
+        document.getElementById("systemStatus").textContent =
+            "ALERTS";
+
+        document.getElementById("systemStatus").className =
+            "number alert-status";
+
+
+        table.innerHTML = alerts.map(alert => `
+
+            <tr>
+
+                <td>${alert.time}</td>
+
+                <td class="high">
+                    ${alert.type}
+                </td>
+
+                <td>
+                    ${alert.src_ip}
+                </td>
+
+                <td>
+                    ${alert.details}
+                </td>
+
+            </tr>
+
+        `).join("");
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Dashboard update failed:",
+            error
+        );
+
+    }
+}
+
+
+// Update immediately
+updateDashboard();
+
+// Update every second
+setInterval(updateDashboard, 1000);
+
+</script>
+
+</body>
+</html>
